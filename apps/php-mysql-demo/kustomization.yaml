@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - k8s/namespace.yaml
   - k8s/secret.yaml
+  - k8s/mysql-init-configmap.yaml
   - k8s/mysql-pvc.yaml
   - k8s/mysql-deployment.yaml
   - k8s/mysql-service.yaml

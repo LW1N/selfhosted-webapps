@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-scripts
+  namespace: demo
+data:
+  init-user.sql: |
+    -- Runs on first initialization only (when /var/lib/mysql is empty).
+    -- Ensures the app user has remote access from any host in the cluster.
+    CREATE USER IF NOT EXISTS 'demo'@'%' IDENTIFIED BY 'demopass456';
+    GRANT ALL PRIVILEGES ON `demo`.* TO 'demo'@'%';
+    FLUSH PRIVILEGES;
