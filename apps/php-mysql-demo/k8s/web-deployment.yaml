@@ -20,7 +20,7 @@ spec:
       #   - name: ghcr-pull-secret
       containers:
         - name: web
-          image: REPLACE_WITH_YOUR_IMAGE   # e.g. ghcr.io/youruser/php-mysql-demo:latest
+          image: lw1n/php-mysql-demo:latest
           ports:
             - containerPort: 80
           env:
