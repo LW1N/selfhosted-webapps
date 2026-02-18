@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: web.demo.local
+    - host: uncannydev.com
       http:
         paths:
           - path: /
