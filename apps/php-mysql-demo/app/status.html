@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 640px; margin: 2rem auto; padding: 0 1rem;
+            color: #1a1a1a; background: #f5f5f5;
+        }
+        h1 { margin-bottom: .25rem; }
+        p { line-height: 1.6; }
+        a { color: #0070f3; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        nav { margin-bottom: 1.5rem; font-size: .9rem; }
+        nav a + a { margin-left: 1rem; }
+        .card {
+            background: #fff; border-radius: 6px; padding: 1rem 1.25rem;
+            margin-bottom: 1rem; border: 1px solid #e5e5e5;
+        }
+        .card h2 { margin: 0 0 .5rem; font-size: 1.1rem; }
+        .badge {
+            display: inline-block; padding: .15rem .5rem; border-radius: 3px;
+            font-size: .8rem; font-weight: 600; background: #dcfce7; color: #16a34a;
+        }
+    </style>
+</head>
+<body>
+    <nav><a href="/">Home</a><a href="/about.html">About</a><a href="/status.html">Status</a></nav>
+    <h1>Status</h1>
+    <p>Quick overview of running services.</p>
+
+    <div class="card">
+        <h2>Web Server <span class="badge">OK</span></h2>
+        <p>Apache + PHP is serving requests on port 80.</p>
+    </div>
+
+    <div class="card">
+        <h2>Database <span class="badge">OK</span></h2>
+        <p>MySQL backend connected via internal cluster DNS.</p>
+    </div>
+
+    <div class="card">
+        <h2>GitOps <span class="badge">OK</span></h2>
+        <p>FluxCD is syncing this repo to the k3s cluster.</p>
+    </div>
+</body>
+</html>
