@@ -167,10 +167,31 @@ Then open **http://web.demo.local** in your browser. You should see a simple for
 
 ## 6. Updating the app
 
-1. Edit `apps/php-mysql-demo/app/index.php` (or any manifest).
-2. Rebuild & push the image with a **new tag** (or use `:latest` and set `imagePullPolicy: Always`).
-3. Update `web-deployment.yaml` with the new tag if applicable.
-4. Commit and push — Flux handles the rest.
+1. Edit files in `apps/php-mysql-demo/app/` (e.g. `index.php`, `humanturtle.html`, `aiturtle.html`).
+
+2. Rebuild the image for amd64 and push it to Docker Hub:
+
+```bash
+cd apps/php-mysql-demo/app
+docker buildx build --platform linux/amd64 -t lw1n/php-mysql-demo:latest --push .
+```
+
+3. Bump the restart annotation in `apps/php-mysql-demo/k8s/web-deployment.yaml` so Flux triggers a rollout (the `:latest` tag alone won't cause new pods to pull the updated image):
+
+```yaml
+annotations:
+  kubectl.kubernetes.io/restartedAt: "2026-02-20T02:00:00Z"   # ← change the timestamp
+```
+
+4. Commit and push:
+
+```bash
+git add -A
+git commit -m "Update app"
+git push origin main
+```
+
+Flux watches the `main` branch and will reconcile within ~1 minute. The annotation change causes Kubernetes to roll out new pods that pull the latest image.
 
 ---
 
