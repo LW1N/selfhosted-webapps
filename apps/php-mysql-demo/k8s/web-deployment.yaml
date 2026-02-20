@@ -15,7 +15,7 @@ spec:
       labels:
         app: web
       annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-02-20T00:00:00Z"
+        kubectl.kubernetes.io/restartedAt: "2026-02-20T01:00:00Z"
     spec:
       # ── Uncomment if pulling from a private registry ──
       # imagePullSecrets:

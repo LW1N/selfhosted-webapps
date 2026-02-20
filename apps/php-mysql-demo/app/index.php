@@ -76,9 +76,21 @@ try {
         th, td { text-align: left; padding: .6rem .75rem; border-bottom: 1px solid #eee; }
         th { background: #fafafa; font-weight: 600; }
         .empty { padding: 1.5rem; text-align: center; color: #999; }
+        nav {
+            display: flex; gap: 1rem; margin-bottom: 1.5rem; font-size: .9rem;
+        }
+        nav a {
+            color: #0070f3; text-decoration: none;
+        }
+        nav a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/humanturtle.html">Human Turtle</a>
+        <a href="/aiturtle.html">AI Turtle</a>
+    </nav>
     <h1>Messages</h1>
     <p class="meta">PHP <?= PHP_VERSION ?> &middot; MySQL &middot; Hostname: <?= gethostname() ?></p>
 
