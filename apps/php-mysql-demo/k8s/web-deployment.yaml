@@ -23,6 +23,7 @@ spec:
       containers:
         - name: web
           image: lw1n/php-mysql-demo:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           env:
