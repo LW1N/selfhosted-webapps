@@ -43,11 +43,11 @@ try {
     $messages = [];
 }
 
-$page_title = 'Demo';
+$page_title = 'Demo — Work in progress';
 $current_page = null; // demo is not in main nav as "current"
 require __DIR__ . '/includes/header.php';
 ?>
-<h1>Messages demo</h1>
+<h1>Messages demo <span class="meta">(WORK IN PROGRESS)</span></h1>
 <p class="meta">PHP <?= PHP_VERSION ?> &middot; MySQL &middot; Hostname: <?= htmlspecialchars(gethostname()) ?></p>
 
 <?php if ($error):   ?><p class="error"><?= htmlspecialchars($error) ?></p><?php endif; ?>

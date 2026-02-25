@@ -10,15 +10,11 @@ $nav_items = [
 ];
 ?>
 <nav class="site-nav" aria-label="Main navigation">
-    <ul>
-        <?php foreach ($nav_items as $key => $item): ?>
-            <li>
-                <a href="<?= htmlspecialchars($item['url']) ?>"
-                   <?= ($current_page === $key) ? ' class="active" aria-current="page"' : '' ?>>
-                    <?= htmlspecialchars($item['label']) ?>
-                </a>
-            </li>
-        <?php endforeach; ?>
-        <li><a href="/demo.php">Try the demo</a></li>
-    </ul>
+    <?php foreach ($nav_items as $key => $item): ?>
+        <a href="<?= htmlspecialchars($item['url']) ?>"
+           <?= ($current_page === $key) ? ' class="active" aria-current="page"' : '' ?>>
+            <?= htmlspecialchars($item['label']) ?>
+        </a>
+    <?php endforeach; ?>
+    <a href="/demo.php" class="nav-secondary">Try the demo</a>
 </nav>
