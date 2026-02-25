@@ -6,7 +6,7 @@ metadata:
 data:
   init-user.sql: |
     -- Runs on first initialization only (when /var/lib/mysql is empty).
-    -- Ensures the app user has remote access from any host in the cluster.
-    CREATE USER IF NOT EXISTS 'demo'@'%' IDENTIFIED BY 'demopass456';
+    -- The user is created automatically by MySQL from MYSQL_USER / MYSQL_PASSWORD
+    -- env vars. This script ensures remote access from any pod in the cluster.
     GRANT ALL PRIVILEGES ON `demo`.* TO 'demo'@'%';
     FLUSH PRIVILEGES;

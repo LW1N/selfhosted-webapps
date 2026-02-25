@@ -3,7 +3,13 @@ kind: Kustomization
 
 resources:
   - k8s/namespace.yaml
-  - k8s/secret.yaml
+  # secret.yaml is NOT in Git (security). Create it manually:
+  #   kubectl create secret generic mysql-secret --namespace=demo \
+  #     --from-literal=MYSQL_ROOT_PASSWORD='...' \
+  #     --from-literal=MYSQL_DATABASE='demo' \
+  #     --from-literal=MYSQL_USER='demo' \
+  #     --from-literal=MYSQL_PASSWORD='...'
+  # See k8s/secret.yaml.example for the template.
   - k8s/mysql-init-configmap.yaml
   - k8s/mysql-pvc.yaml
   - k8s/mysql-deployment.yaml
