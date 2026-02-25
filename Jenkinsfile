@@ -76,10 +76,6 @@ spec:
         }
 
         stage('Build & Push') {
-            when {
-                branch 'main'
-                changeset 'apps/php-mysql-demo/**'
-            }
             steps {
                 container('kaniko') {
                     sh """
