@@ -1,0 +1,68 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: jenkins
+  namespace: flux-system
+spec:
+  interval: 30m
+  targetNamespace: jenkins
+  releaseName: jenkins
+  chart:
+    spec:
+      chart: jenkins
+      version: ">=5.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: jenkins
+        namespace: flux-system
+      interval: 12h
+  install:
+    createNamespace: false
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    controller:
+      image:
+        tag: lts-jdk17
+      installPlugins:
+        - kubernetes
+        - git
+        - github
+        - docker-workflow
+        - workflow-aggregator
+        - pipeline-stage-view
+        - configuration-as-code
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
+      serviceType: ClusterIP
+      servicePort: 8080
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClass: local-path
+    serviceAccount:
+      create: true
+      name: jenkins
+    rbac:
+      create: true
+      readSecrets: true
+    agent:
+      enabled: true
+      namespace: jenkins
+      serviceAccount: jenkins-agent
+      podRetention: Never
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

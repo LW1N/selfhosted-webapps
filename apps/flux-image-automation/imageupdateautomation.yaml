@@ -1,0 +1,25 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageUpdateAutomation
+metadata:
+  name: selfhosted-webapps
+  namespace: flux-system
+spec:
+  interval: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        name: flux-image-automation
+        email: flux@selfhosted-webapps.local
+      messageTemplate: |
+        chore(image): update {{ range .Changed.Changes }}{{ .OldValue }} -> {{ .NewValue }} {{ end }}
+    push:
+      branch: main
+  update:
+    path: ./apps
+    strategy: Setters
