@@ -1,0 +1,38 @@
+[
+    {
+        "date": "2025-02-20",
+        "title": "Pass & Play Pro tier now available",
+        "summary": "We've launched our Pro tier with unlimited voice rooms, custom roles, and priority support. Perfect for growing communities.",
+        "link": "#"
+    },
+    {
+        "date": "2025-02-15",
+        "title": "Mobile app beta opens",
+        "summary": "Our lightweight mobile-first app is now in open beta. Test it on iOS and Android and share your feedback.",
+        "link": "#"
+    },
+    {
+        "date": "2025-02-08",
+        "title": "Threaded conversations are here",
+        "summary": "Threaded chat is now live for all plans. Keep discussions clear without losing context.",
+        "link": "#"
+    },
+    {
+        "date": "2025-02-01",
+        "title": "Event scheduling built in",
+        "summary": "Schedule events and meetups directly in your space. No more juggling external calendars.",
+        "link": "#"
+    },
+    {
+        "date": "2025-01-25",
+        "title": "Privacy and data controls",
+        "summary": "New privacy dashboard lets community owners control data retention and export. We put you in charge.",
+        "link": "#"
+    },
+    {
+        "date": "2025-01-18",
+        "title": "Welcome to Pass & Play",
+        "summary": "We're live. Pass & Play is a Discord-like space focused on clarity, onboarding, and performance. Join the waitlist.",
+        "link": "#"
+    }
+]

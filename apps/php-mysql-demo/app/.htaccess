@@ -1,0 +1,11 @@
+# Clean URLs for Pass & Play site
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    # Redirect /about -> about.php, etc.
+    RewriteRule ^about/?$    about.php    [L]
+    RewriteRule ^products/?$ products.php [L]
+    RewriteRule ^services/?$ products.php [L]
+    RewriteRule ^news/?$     news.php     [L]
+    RewriteRule ^contacts/?$ contacts.php [L]
+</IfModule>

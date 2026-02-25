@@ -9,8 +9,14 @@ A monorepo of self-hosted web applications deployed to a **k3s** cluster via **F
 ├── apps/                          # Application source + manifests
 │   └── php-mysql-demo/
 │       ├── app/
-│       │   ├── index.php          # PHP application
-│       │   └── Dockerfile         # Container image build
+│       │   ├── index.php          # Pass & Play home
+│       │   ├── demo.php            # Messages demo (MySQL)
+│       │   ├── about.php, products.php, news.php, contacts.php
+│       │   ├── includes/           # header, footer, nav, contacts_loader
+│       │   ├── css/site.css
+│       │   ├── data/news.json, data/contacts/*.csv
+│       │   └── Dockerfile
+│       ├── docs/contacts.md       # Contact directory format & how to edit
 │       ├── k8s/
 │       │   ├── namespace.yaml
 │       │   ├── secret.yaml        # DB credentials (stringData)
@@ -29,6 +35,19 @@ A monorepo of self-hosted web applications deployed to a **k3s** cluster via **F
         │   └── php-mysql-demo.yaml  # Flux Kustomization
         └── kustomization.yaml
 ```
+
+### Pass & Play company site (php-mysql-demo)
+
+The app serves a small company site for **Pass & Play** (Discord-like community platform) plus the original messages demo:
+
+- **/** — Home  
+- **/about** — About  
+- **/products** (or **/services**) — Products & pricing  
+- **/news** — News (from `app/data/news.json`)  
+- **/contacts** — Contacts (from `app/data/contacts/*.csv`; see [docs/contacts.md](apps/php-mysql-demo/docs/contacts.md))  
+- **/demo.php** — Messages demo (MySQL)
+
+Contacts are stored in CSV files under `app/data/contacts/`; no database is used for contacts. See `apps/php-mysql-demo/docs/contacts.md` for the file format and how to add or edit contacts.
 
 ---
 
@@ -161,29 +180,29 @@ Add an entry to `/etc/hosts` on the machine where you'll open a browser:
 
 Replace `<NODE_IP>` with the WireGuard-accessible IP of one of your k3s nodes.
 
-Then open **http://web.demo.local** in your browser. You should see a simple form. Type a message, hit **Send**, and it will be stored in MySQL and displayed on the page.
+Then open **http://web.demo.local** in your browser. You should see the Pass & Play home page. Use **Try the demo** in the nav for the message form (MySQL).
 
 ---
 
-## 6. Updating the app
+## 6. Updating the app (Flux CD)
 
-1. Edit files in `apps/php-mysql-demo/app/` (e.g. `index.php`, `humanturtle.html`, `aiturtle.html`).
+Code changes **do not** take effect just by pushing to Git. The app runs from a **Docker image**; Flux applies what’s in the repo (manifests), and Kubernetes runs the image you built. To deploy updates without breaking the app:
 
-2. Rebuild the image for amd64 and push it to Docker Hub:
+1. **Rebuild and push the image** (from repo root):
 
 ```bash
 cd apps/php-mysql-demo/app
 docker buildx build --platform linux/amd64 -t lw1n/php-mysql-demo:latest --push .
 ```
 
-3. Bump the restart annotation in `apps/php-mysql-demo/k8s/web-deployment.yaml` so Flux triggers a rollout (the `:latest` tag alone won't cause new pods to pull the updated image):
+2. **Bump the rollout annotation** in `apps/php-mysql-demo/k8s/web-deployment.yaml` so Flux triggers a new rollout (pods will pull the updated image):
 
 ```yaml
 annotations:
-  kubectl.kubernetes.io/restartedAt: "2026-02-20T02:00:00Z"   # ← change the timestamp
+  kubectl.kubernetes.io/restartedAt: "2026-02-24T00:00:00Z"   # ← change to a new timestamp
 ```
 
-4. Commit and push:
+3. **Commit and push** (including the annotation change):
 
 ```bash
 git add -A
@@ -191,7 +210,9 @@ git commit -m "Update app"
 git push origin main
 ```
 
-Flux watches the `main` branch and will reconcile within ~1 minute. The annotation change causes Kubernetes to roll out new pods that pull the latest image.
+Flux reconciles within ~1 minute. The new annotation causes a rolling rollout: new pods pull `imagePullPolicy: Always` with the `:latest` image, so they run your new code. The old pods are only replaced after the new ones are ready, so the app stays up.
+
+**If you only push Git without rebuilding the image:** the running pods keep the previous image; your latest code will not run until you rebuild, push the image, and bump the annotation again.
 
 ---
 
