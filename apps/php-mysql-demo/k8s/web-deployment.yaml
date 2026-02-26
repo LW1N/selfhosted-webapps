@@ -22,7 +22,7 @@ spec:
       #   - name: ghcr-pull-secret
       containers:
         - name: web
-          image: docker.io/lw1n/php-mysql-demo:main-1772106687 # {"$imagepolicy": "flux-system:php-mysql-demo"}
+          image: docker.io/lw1n/php-mysql-demo:main-1772107286 # {"$imagepolicy": "flux-system:php-mysql-demo"}
           imagePullPolicy: Always
           ports:
             - containerPort: 80
