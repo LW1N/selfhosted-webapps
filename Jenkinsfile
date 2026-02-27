@@ -50,6 +50,17 @@ spec:
         limits:
           cpu: 250m
           memory: 128Mi
+    - name: kubectl
+      image: bitnami/kubectl:latest
+      command: ["cat"]
+      tty: true
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 250m
+          memory: 128Mi
   volumes:
     - name: docker-config
       secret:
@@ -67,7 +78,9 @@ spec:
 
     environment {
         IMAGE = 'docker.io/lw1n/php-mysql-demo'
-        DEPLOY_FILE = 'apps/php-mysql-demo/k8s/web-deployment.yaml'
+        IMAGE_TAG = 'sha-placeholder'
+        KUSTOMIZATION_FILE = 'apps/php-mysql-demo/kustomization.yaml'
+        APP_PATH = 'apps/php-mysql-demo'
         GIT_REPO = 'git@github.com:LW1N/selfhosted-webapps.git'
     }
 
@@ -105,8 +118,6 @@ spec:
                         script: 'git rev-parse --short HEAD',
                         returnStdout: true
                     ).trim()
-
-                    // Immutable tag used for deployment
                     env.IMAGE_TAG = "sha-${env.SHORT_SHA}"
                 }
             }
@@ -139,7 +150,32 @@ spec:
             }
         }
 
-        stage('Update deployment manifest') {
+        stage('Update kustomization') {
+            when { expression { env.SKIP_BUILD != 'true' } }
+            steps {
+                sh """
+                set -e
+                # Update images.newTag in kustomization.yaml (sed is universally available)
+                sed -i 's|newTag: .*|newTag: ${IMAGE_TAG}|' ${KUSTOMIZATION_FILE}
+                """
+            }
+        }
+
+        stage('Pre-deploy Validation') {
+            when { expression { env.SKIP_BUILD != 'true' } }
+            steps {
+                container('kubectl') {
+                    sh """
+                    set -e
+                    echo "Validating manifests against cluster (server-side dry-run)..."
+                    kubectl apply -k ${APP_PATH} --dry-run=server
+                    echo "Validation passed."
+                    """
+                }
+            }
+        }
+
+        stage('Commit and Push') {
             when { expression { env.SKIP_BUILD != 'true' } }
             steps {
                 container('git') {
@@ -171,24 +207,14 @@ SSHEOF
 
                     export GIT_SSH_COMMAND="ssh -F \$HOME/.ssh/config -o IdentitiesOnly=yes"
 
-                    WORK_DIR=\$(mktemp -d)
-                    git clone --depth 1 --branch main ${GIT_REPO} "\$WORK_DIR"
-
-                    cd "\$WORK_DIR"
-
-                    # Update only the specific image reference
-                    sed -i 's|image: ${IMAGE}:.*|image: ${IMAGE}:${IMAGE_TAG}|' ${DEPLOY_FILE}
-
                     git config user.name "jenkins-ci"
                     git config user.email "jenkins@selfhosted-webapps.local"
 
-                    git add ${DEPLOY_FILE}
+                    git add ${KUSTOMIZATION_FILE}
                     git diff --cached --quiet && echo "No change to commit" && exit 0
 
                     git commit -m "deploy: update image to ${IMAGE_TAG}"
                     git push origin main
-
-                    rm -rf "\$WORK_DIR"
                     """
                 }
             }
@@ -201,7 +227,7 @@ SSHEOF
                 if (env.SKIP_BUILD == 'true') {
                     echo "Skipped (commit by ${env.COMMIT_AUTHOR})."
                 } else {
-                    echo "Image ${IMAGE_TAG} built, pushed, and deployment updated."
+                    echo "Image ${IMAGE_TAG} built, pushed, and deployment promoted via kustomization."
                 }
             }
         }

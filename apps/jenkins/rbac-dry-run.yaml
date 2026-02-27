@@ -1,0 +1,33 @@
+# RBAC for jenkins-agent to run kubectl apply --dry-run=server (pre-deploy validation).
+# Required for the Pre-deploy Validation stage; jenkins-agent must not actually deploy.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: jenkins-agent-dry-run
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["configmaps", "persistentvolumeclaims", "secrets", "services"]
+    verbs: ["create", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["create", "update", "patch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jenkins-agent-dry-run
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: jenkins-agent-dry-run
+subjects:
+  - kind: ServiceAccount
+    name: jenkins-agent
+    namespace: jenkins
