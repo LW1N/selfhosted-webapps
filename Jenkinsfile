@@ -141,11 +141,14 @@ spec:
         stage('Update kustomization') {
             when { expression { env.SKIP_BUILD != 'true' } }
             steps {
-                sh """
-                set -e
-                # Update images.newTag in kustomization.yaml (sed is universally available)
-                sed -i 's|newTag: .*|newTag: ${IMAGE_TAG}|' ${KUSTOMIZATION_FILE}
-                """
+                container('git') {
+                    sh """
+                    set -e
+                    cd "\${WORKSPACE}"
+                    # Update images.newTag in kustomization.yaml (sed is universally available)
+                    sed -i 's|newTag: .*|newTag: ${IMAGE_TAG}|' ${KUSTOMIZATION_FILE}
+                    """
+                }
             }
         }
 
@@ -155,6 +158,7 @@ spec:
                 container('git') {
                     sh """
                     set -euo pipefail
+                    cd "\${WORKSPACE}"
 
                     export HOME=/var/jenkins_home
                     mkdir -p "\$HOME/.ssh"
@@ -181,8 +185,9 @@ SSHEOF
 
                     export GIT_SSH_COMMAND="ssh -F \$HOME/.ssh/config -o IdentitiesOnly=yes"
 
-                    git config user.name "jenkins-ci"
-                    git config user.email "jenkins@selfhosted-webapps.local"
+                    git config --global --add safe.directory "\${WORKSPACE}"
+                    git config --global user.name "jenkins-ci"
+                    git config --global user.email "jenkins@selfhosted-webapps.local"
 
                     git add ${KUSTOMIZATION_FILE}
                     git diff --cached --quiet && echo "No change to commit" && exit 0
