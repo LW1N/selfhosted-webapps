@@ -138,9 +138,21 @@ spec:
                     sh """
                     mkdir -p ~/.ssh
                     cp /etc/git-secret/ssh-privatekey ~/.ssh/id_ed25519
-                    cp /etc/git-secret/known_hosts ~/.ssh/known_hosts
                     chmod 600 ~/.ssh/id_ed25519
-                    chmod 644 ~/.ssh/known_hosts
+
+                    # Route GitHub SSH through port 443 (works behind VPNs/proxies)
+                    cat > ~/.ssh/config <<SSHEOF
+Host github.com
+    HostName ssh.github.com
+    Port 443
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+    StrictHostKeyChecking accept-new
+SSHEOF
+                    chmod 600 ~/.ssh/config
+
+                    # Fetch known_hosts for ssh.github.com:443
+                    ssh-keyscan -p 443 ssh.github.com > ~/.ssh/known_hosts 2>/dev/null
 
                     WORK_DIR=\$(mktemp -d)
                     git clone --depth 1 --branch main ${GIT_REPO} \$WORK_DIR
