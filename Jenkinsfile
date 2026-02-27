@@ -35,6 +35,17 @@ spec:
         limits:
           cpu: 250m
           memory: 256Mi
+    - name: kubectl
+      image: bitnami/kubectl:latest
+      command: ["cat"]
+      tty: true
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 250m
+          memory: 128Mi
   volumes:
     - name: docker-config
       secret:
@@ -108,11 +119,32 @@ spec:
                 }
             }
         }
+
+        stage('Trigger Flux') {
+            when { expression { env.SKIP_BUILD != 'true' } }
+            steps {
+                container('kubectl') {
+                    sh """
+                    echo "Triggering Flux image scan..."
+                    kubectl -n flux-system annotate --overwrite \
+                        imagerepository/php-mysql-demo \
+                        reconcile.fluxcd.io/requestedAt=\$(date +%s)
+
+                    sleep 10
+
+                    echo "Triggering Flux image update automation..."
+                    kubectl -n flux-system annotate --overwrite \
+                        imageupdateautomation/selfhosted-webapps \
+                        reconcile.fluxcd.io/requestedAt=\$(date +%s)
+                    """
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo "Build ${env.BUILD_TS} (sha-${env.SHORT_SHA}) pushed successfully."
+            echo "Build ${env.BUILD_TS} (sha-${env.SHORT_SHA}) pushed and Flux notified."
         }
         failure {
             echo "Build failed. Check the logs above."

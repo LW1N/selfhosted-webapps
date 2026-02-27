@@ -5,6 +5,7 @@ metadata:
   name: jenkins-agent
   namespace: jenkins
 ---
+# Pod management in jenkins namespace
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -37,3 +38,28 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: jenkins-agent
+---
+# Trigger Flux reconciliation from jenkins namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins-flux-trigger
+  namespace: flux-system
+rules:
+  - apiGroups: ["image.toolkit.fluxcd.io"]
+    resources: ["imagerepositories", "imageupdateautomations"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-flux-trigger
+  namespace: flux-system
+subjects:
+  - kind: ServiceAccount
+    name: jenkins-agent
+    namespace: jenkins
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: jenkins-flux-trigger

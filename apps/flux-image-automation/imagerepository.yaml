@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   image: docker.io/lw1n/php-mysql-demo
-  interval: 5m
+  interval: 30m
   # If Docker Hub rate-limits unauthenticated pulls, uncomment and
   # create the secret in flux-system namespace (see execution plan):
   # secretRef:
