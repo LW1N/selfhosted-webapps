@@ -35,10 +35,14 @@ spec:
         limits:
           cpu: 250m
           memory: 256Mi
-    - name: kubectl
-      image: bitnami/kubectl:latest
+    - name: git
+      image: bitnami/git:latest
       command: ["cat"]
       tty: true
+      volumeMounts:
+        - name: git-ssh
+          mountPath: /etc/git-secret
+          readOnly: true
       resources:
         requests:
           cpu: 50m
@@ -53,12 +57,18 @@ spec:
         items:
           - key: .dockerconfigjson
             path: config.json
+    - name: git-ssh
+      secret:
+        secretName: git-ssh-key
+        defaultMode: 0400
 '''
         }
     }
 
     environment {
         IMAGE = 'docker.io/lw1n/php-mysql-demo'
+        DEPLOY_FILE = 'apps/php-mysql-demo/k8s/web-deployment.yaml'
+        GIT_REPO = 'git@github.com:LW1N/selfhosted-webapps.git'
     }
 
     stages {
@@ -68,12 +78,12 @@ spec:
             }
         }
 
-        stage('Skip Flux commits') {
+        stage('Check commit author') {
             steps {
                 script {
-                    def author = sh(script: 'git log -1 --format=%an', returnStdout: true).trim()
-                    if (author == 'flux-image-automation') {
-                        echo "Commit by Flux image automation — nothing to build."
+                    env.COMMIT_AUTHOR = sh(script: 'git log -1 --format=%an', returnStdout: true).trim()
+                    if (env.COMMIT_AUTHOR == 'jenkins-ci') {
+                        echo "Commit by jenkins-ci (image tag update) — skipping build."
                         env.SKIP_BUILD = 'true'
                     } else {
                         env.SKIP_BUILD = 'false'
@@ -88,6 +98,7 @@ spec:
                 script {
                     env.SHORT_SHA = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     env.BUILD_TS  = sh(script: 'date +%s', returnStdout: true).trim()
+                    env.IMAGE_TAG = "main-${env.BUILD_TS}"
                 }
             }
         }
@@ -110,7 +121,7 @@ spec:
                     /kaniko/executor \
                         --context=dir://\$(pwd)/apps/php-mysql-demo/app \
                         --dockerfile=Dockerfile \
-                        --destination=${IMAGE}:main-${BUILD_TS} \
+                        --destination=${IMAGE}:${IMAGE_TAG} \
                         --destination=${IMAGE}:sha-${SHORT_SHA} \
                         --destination=${IMAGE}:latest \
                         --cache=true \
@@ -120,22 +131,31 @@ spec:
             }
         }
 
-        stage('Trigger Flux') {
+        stage('Update deployment manifest') {
             when { expression { env.SKIP_BUILD != 'true' } }
             steps {
-                container('kubectl') {
+                container('git') {
                     sh """
-                    echo "Triggering Flux image scan..."
-                    kubectl -n flux-system annotate --overwrite \
-                        imagerepository/php-mysql-demo \
-                        reconcile.fluxcd.io/requestedAt=\$(date +%s)
+                    mkdir -p ~/.ssh
+                    cp /etc/git-secret/ssh-privatekey ~/.ssh/id_ed25519
+                    cp /etc/git-secret/known_hosts ~/.ssh/known_hosts
+                    chmod 600 ~/.ssh/id_ed25519
+                    chmod 644 ~/.ssh/known_hosts
 
-                    sleep 10
+                    WORK_DIR=\$(mktemp -d)
+                    git clone --depth 1 --branch main ${GIT_REPO} \$WORK_DIR
 
-                    echo "Triggering Flux image update automation..."
-                    kubectl -n flux-system annotate --overwrite \
-                        imageupdateautomation/selfhosted-webapps \
-                        reconcile.fluxcd.io/requestedAt=\$(date +%s)
+                    cd \$WORK_DIR
+                    sed -i 's|image: ${IMAGE}:.*|image: ${IMAGE}:${IMAGE_TAG}|' ${DEPLOY_FILE}
+
+                    git config user.name "jenkins-ci"
+                    git config user.email "jenkins@selfhosted-webapps.local"
+                    git add ${DEPLOY_FILE}
+                    git diff --cached --quiet && echo "No change to commit" && exit 0
+                    git commit -m "deploy: update image to ${IMAGE_TAG}"
+                    git push origin main
+
+                    rm -rf \$WORK_DIR
                     """
                 }
             }
@@ -144,7 +164,13 @@ spec:
 
     post {
         success {
-            echo "Build ${env.BUILD_TS} (sha-${env.SHORT_SHA}) pushed and Flux notified."
+            script {
+                if (env.SKIP_BUILD == 'true') {
+                    echo "Skipped (commit by ${env.COMMIT_AUTHOR})."
+                } else {
+                    echo "Build ${env.IMAGE_TAG} (sha-${env.SHORT_SHA}) pushed and deployment manifest updated."
+                }
+            }
         }
         failure {
             echo "Build failed. Check the logs above."

@@ -6,7 +6,7 @@ A monorepo of self-hosted web applications deployed to a **k3s** cluster via **F
 
 ```
 .
-├── Jenkinsfile                    # CI pipeline (Kaniko build + push to Docker Hub)
+├── Jenkinsfile                    # CI pipeline (build, test, push, update manifest)
 ├── apps/
 │   ├── php-mysql-demo/
 │   │   ├── app/                   # Application source
@@ -20,23 +20,17 @@ A monorepo of self-hosted web applications deployed to a **k3s** cluster via **F
 │   │   ├── docs/contacts.md       # Contact directory format & how to edit
 │   │   ├── k8s/                   # Kubernetes manifests
 │   │   └── kustomization.yaml
-│   ├── jenkins/                   # Jenkins Helm install (Flux-managed)
-│   │   ├── helmrepository.yaml
-│   │   ├── helmrelease.yaml
-│   │   ├── ingress.yaml           # Traefik → jenkins.local
-│   │   ├── rbac.yaml              # Agent ServiceAccount + Role
-│   │   └── kustomization.yaml
-│   └── flux-image-automation/     # Flux image scanning + auto-deploy
-│       ├── imagerepository.yaml
-│       ├── imagepolicy.yaml
-│       ├── imageupdateautomation.yaml
+│   └── jenkins/                   # Jenkins Helm install (Flux-managed)
+│       ├── helmrepository.yaml
+│       ├── helmrelease.yaml
+│       ├── ingress.yaml           # Traefik → jenkins.uncannydev.com
+│       ├── rbac.yaml              # Agent ServiceAccount + Role
 │       └── kustomization.yaml
 └── clusters/production/
     ├── flux-system/               # Flux bootstrap (do not edit)
     └── apps/
         ├── php-mysql-demo.yaml
-        ├── jenkins.yaml
-        └── flux-image-automation.yaml
+        └── jenkins.yaml
 ```
 
 ### Pass & Play company site (php-mysql-demo)
@@ -81,11 +75,13 @@ Builds the same image that ships to production. Clean URLs work (Apache + `.htac
 
 ```bash
 cd apps/php-mysql-demo/app
-docker build -t php-mysql-demo:local .
+docker build --platform linux/amd64 -t php-mysql-demo:local .
 docker run --rm -p 8080:80 php-mysql-demo:local
 ```
 
 Open **http://localhost:8080**. All pages work (`/about`, `/products`, etc.). The demo page will show a database error (no MySQL), which is expected.
+
+> **Note:** Always use `--platform linux/amd64` when building locally on Apple Silicon. The k3s cluster runs amd64 nodes.
 
 ### Option C — Docker Compose (full stack with MySQL)
 
@@ -103,7 +99,10 @@ services:
     ports:
       - "3306:3306"
   web:
-    build: apps/php-mysql-demo/app
+    build:
+      context: apps/php-mysql-demo/app
+      platforms:
+        - linux/amd64
     ports:
       - "8080:80"
     environment:
@@ -141,35 +140,31 @@ Deployment is **fully automated**. When you push to `main`:
 git push origin main
       │
       ▼
-Jenkins (polls every ~5 min) detects new commits
+Jenkins detects new commit (webhook or poll)
       │
       ▼
 Pipeline runs in k3s (Jenkinsfile):
-  1. Checkout
+  1. Checks commit author — skips if "jenkins-ci"
   2. PHP lint (all .php files)
-  3. Kaniko builds Docker image
+  3. Kaniko builds Docker image (linux/amd64)
   4. Pushes to Docker Hub:
      - lw1n/php-mysql-demo:main-<timestamp>
      - lw1n/php-mysql-demo:sha-<short-sha>
      - lw1n/php-mysql-demo:latest
+  5. Clones repo via SSH, updates image tag
+     in web-deployment.yaml, commits & pushes
       │
       ▼
-Flux image-reflector scans Docker Hub (every 5 min)
-  → Finds new main-<timestamp> tag
-      │
-      ▼
-Flux image-automation-controller:
-  → Updates web-deployment.yaml image tag in Git
-  → Commits: "chore(image): update ..."
-  → Pushes to main
-      │
-      ▼
-Flux kustomize-controller reconciles
+Flux detects git change (polls every 1 min)
   → Applies updated deployment
   → Kubernetes rolling update (zero downtime)
+      │
+      ▼
+Jenkins sees its own commit (author: "jenkins-ci")
+  → Skips build — no feedback loop
 ```
 
-**You do not need to manually build images, bump annotations, or touch deployment files.** Just push code.
+**You do not need to manually build images or edit deployment files.** Just push code.
 
 ---
 
@@ -180,9 +175,8 @@ Flux kustomize-controller reconciles
 | Docker | Local testing (Options B/C) |
 | PHP 8.x | Local testing (Options A/D) |
 | A k3s cluster | Production environment |
-| Flux CD bootstrapped | With image-reflector + image-automation controllers |
+| Flux CD bootstrapped | GitOps deployment |
 | `kubectl` configured | Talking to your k3s cluster |
-| `/etc/hosts` entries | `uncannydev.com` and `jenkins.local` → node IP |
 
 ---
 
@@ -192,23 +186,38 @@ These steps only need to be performed once.
 
 ### Jenkins
 
-Jenkins is installed via Flux HelmRelease. Access it at **http://jenkins.local**.
+Jenkins is installed via Flux HelmRelease. Access it at **https://jenkins.uncannydev.com**.
 
 ```bash
 # Get admin password
-kubectl -n jenkins get secret jenkins -o jsonpath='{.data.jenkins-admin-password}' | base64 -d; echo
+kubectl -n jenkins get secret jenkins \
+  -o jsonpath='{.data.jenkins-admin-password}' | base64 -d; echo
 ```
 
-The pipeline job (`php-mysql-demo`) is configured to poll SCM and run the `Jenkinsfile` from the repo root.
+The pipeline job (`php-mysql-demo`) runs the `Jenkinsfile` from the repo root.
 
-### Flux image automation controllers
+### Git SSH key for Jenkins
 
-Installed alongside standard Flux controllers:
+Jenkins uses the same SSH deploy key as Flux to push image tag updates. The key is copied into the `jenkins` namespace as a secret (never stored in Git):
 
 ```bash
-flux install --components-extra=image-reflector-controller,image-automation-controller --export \
-  | kubectl apply -f -
+# Already done — this is how it was created:
+kubectl -n flux-system get secret flux-system -o json \
+  | python3 -c "
+import json, sys
+s = json.load(sys.stdin)
+print(json.dumps({
+    'apiVersion': 'v1', 'kind': 'Secret',
+    'metadata': {'name': 'git-ssh-key', 'namespace': 'jenkins'},
+    'type': 'Opaque',
+    'data': {
+        'ssh-privatekey': s['data']['identity'],
+        'known_hosts': s['data']['known_hosts']
+    }
+}))" | kubectl apply -f -
 ```
+
+> **Security:** The deploy key has write access to the GitHub repo only. It cannot access other repos, and it lives only in the cluster — never in Git.
 
 ---
 
@@ -218,14 +227,14 @@ flux install --components-extra=image-reflector-controller,image-automation-cont
 # Flux status
 flux get kustomizations
 flux get helmreleases -n flux-system
-flux get images all -n flux-system
 
 # App pods
 kubectl -n demo get pods
 kubectl -n jenkins get pods
 
 # Current image tag
-kubectl -n demo get deployment web -o jsonpath='{.spec.template.spec.containers[0].image}'; echo
+kubectl -n demo get deployment web \
+  -o jsonpath='{.spec.template.spec.containers[0].image}'; echo
 
 # Logs
 kubectl -n demo logs -l app=web --tail=50
@@ -235,19 +244,10 @@ kubectl -n demo logs -l app=web --tail=50
 
 ## Access the application
 
-Add entries to `/etc/hosts` on the machine where you'll open a browser:
-
-```
-<NODE_IP>   uncannydev.com
-<NODE_IP>   jenkins.local
-```
-
-Replace `<NODE_IP>` with the IP of one of your k3s nodes.
-
 | URL | What |
 |-----|------|
-| `http://uncannydev.com` | Pass & Play site |
-| `http://jenkins.local` | Jenkins CI dashboard |
+| `https://uncannydev.com` | Pass & Play site |
+| `https://jenkins.uncannydev.com` | Jenkins CI dashboard |
 
 ---
 
@@ -278,6 +278,13 @@ kubectl create secret docker-registry dockerhub-credentials \
   --docker-password=YOUR_ACCESS_TOKEN
 ```
 
+### Git SSH key (for Jenkins → GitHub push)
+
+```bash
+# Copies Flux's deploy key into the jenkins namespace.
+# See "Git SSH key for Jenkins" section above.
+```
+
 For a more GitOps approach, consider [Mozilla SOPS with Flux](https://fluxcd.io/flux/guides/mozilla-sops/) or [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) to encrypt secrets in Git.
 
 ---
@@ -292,5 +299,6 @@ For a more GitOps approach, consider [Mozilla SOPS with Flux](https://fluxcd.io/
 | Flux not reconciling | Run `flux get kustomizations` and `flux get sources git` to check status |
 | PVC stuck in `Pending` | Verify `local-path` storage class exists: `kubectl get sc` |
 | Jenkins build fails (401 Unauthorized) | Docker Hub secret has wrong credentials — recreate it |
-| ImagePolicy shows "version list empty" | No `main-*` tags exist yet — trigger a Jenkins build first |
+| Jenkins can't push to GitHub | `git-ssh-key` secret missing or wrong — recreate from Flux's deploy key |
 | Jenkins agent pod stuck in `Pending` | Check node resources: `kubectl describe pod -n jenkins <pod>` |
+| Platform mismatch (`ErrImagePull`) | Ensure Kaniko or local Docker build targets `linux/amd64` |

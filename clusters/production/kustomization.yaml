@@ -5,4 +5,3 @@ resources:
   - flux-system
   - apps/php-mysql-demo.yaml
   - apps/jenkins.yaml
-  - apps/flux-image-automation.yaml
