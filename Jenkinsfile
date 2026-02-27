@@ -72,6 +72,7 @@ spec:
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -81,9 +82,13 @@ spec:
         stage('Check commit author') {
             steps {
                 script {
-                    env.COMMIT_AUTHOR = sh(script: 'git log -1 --format=%an', returnStdout: true).trim()
+                    env.COMMIT_AUTHOR = sh(
+                        script: 'git log -1 --format=%an',
+                        returnStdout: true
+                    ).trim()
+
                     if (env.COMMIT_AUTHOR == 'jenkins-ci') {
-                        echo "Commit by jenkins-ci (image tag update) — skipping build."
+                        echo "Commit by jenkins-ci — skipping build."
                         env.SKIP_BUILD = 'true'
                     } else {
                         env.SKIP_BUILD = 'false'
@@ -96,9 +101,13 @@ spec:
             when { expression { env.SKIP_BUILD != 'true' } }
             steps {
                 script {
-                    env.SHORT_SHA = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                    env.BUILD_TS  = sh(script: 'date +%s', returnStdout: true).trim()
-                    env.IMAGE_TAG = "main-${env.BUILD_TS}"
+                    env.SHORT_SHA = sh(
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    // Immutable tag used for deployment
+                    env.IMAGE_TAG = "sha-${env.SHORT_SHA}"
                 }
             }
         }
@@ -122,7 +131,6 @@ spec:
                         --context=dir://\$(pwd)/apps/php-mysql-demo/app \
                         --dockerfile=Dockerfile \
                         --destination=${IMAGE}:${IMAGE_TAG} \
-                        --destination=${IMAGE}:sha-${SHORT_SHA} \
                         --destination=${IMAGE}:latest \
                         --cache=true \
                         --cleanup
@@ -135,60 +143,53 @@ spec:
             when { expression { env.SKIP_BUILD != 'true' } }
             steps {
                 container('git') {
-                sh """
-                set -euo pipefail
+                    sh """
+                    set -euo pipefail
 
-                # Bitnami/git usually runs as root, but HOME may not be set as expected in k8s agents.
-                # Force a known HOME so ssh/git always read the same config.
-                export HOME=/var/jenkins_home
-                mkdir -p "\$HOME/.ssh"
-                chmod 700 "\$HOME/.ssh"
+                    export HOME=/var/jenkins_home
+                    mkdir -p "\$HOME/.ssh"
+                    chmod 700 "\$HOME/.ssh"
 
-                # Install private key
-                cp /etc/git-secret/ssh-privatekey "\$HOME/.ssh/id_ed25519"
-                chmod 600 "\$HOME/.ssh/id_ed25519"
+                    cp /etc/git-secret/ssh-privatekey "\$HOME/.ssh/id_ed25519"
+                    chmod 600 "\$HOME/.ssh/id_ed25519"
 
-                # (Optional) If you have a known_hosts file in the secret, use it.
-                # Otherwise, generate it. Force IPv4 to avoid broken IPv6 routes.
-                ssh-keyscan -4 -p 443 ssh.github.com > "\$HOME/.ssh/known_hosts" 2>/dev/null
-                chmod 644 "\$HOME/.ssh/known_hosts"
+                    ssh-keyscan -4 -p 443 ssh.github.com > "\$HOME/.ssh/known_hosts" 2>/dev/null
+                    chmod 644 "\$HOME/.ssh/known_hosts"
 
-                # SSH config: force GitHub SSH over 443 + IPv4 only
-                cat > "\$HOME/.ssh/config" <<'SSHEOF'
-            Host github.com
-            HostName ssh.github.com
-            Port 443
-            User git
-            IdentityFile /var/jenkins_home/.ssh/id_ed25519
-            IdentitiesOnly yes
-            AddressFamily inet
-            StrictHostKeyChecking yes
-            UserKnownHostsFile /var/jenkins_home/.ssh/known_hosts
-            SSHEOF
-                chmod 600 "\$HOME/.ssh/config"
+                    cat > "\$HOME/.ssh/config" <<'SSHEOF'
+Host github.com
+  HostName ssh.github.com
+  Port 443
+  User git
+  IdentityFile /var/jenkins_home/.ssh/id_ed25519
+  IdentitiesOnly yes
+  AddressFamily inet
+  StrictHostKeyChecking yes
+  UserKnownHostsFile /var/jenkins_home/.ssh/known_hosts
+SSHEOF
+                    chmod 600 "\$HOME/.ssh/config"
 
-                # Force git to use exactly this ssh config (removes all ambiguity)
-                export GIT_SSH_COMMAND="ssh -F \$HOME/.ssh/config -o IdentitiesOnly=yes"
+                    export GIT_SSH_COMMAND="ssh -F \$HOME/.ssh/config -o IdentitiesOnly=yes"
 
-                # Sanity check: show what identity ssh will use (doesn't print the key)
-                ssh -G github.com | egrep 'hostname|port|user|identityfile|addressfamily' || true
+                    WORK_DIR=\$(mktemp -d)
+                    git clone --depth 1 --branch main ${GIT_REPO} "\$WORK_DIR"
 
-                WORK_DIR=\$(mktemp -d)
-                git clone --depth 1 --branch main ${GIT_REPO} "\$WORK_DIR"
+                    cd "\$WORK_DIR"
 
-                cd "\$WORK_DIR"
-                sed -i 's|image: ${IMAGE}:.*|image: ${IMAGE}:${IMAGE_TAG}|' ${DEPLOY_FILE}
+                    # Update only the specific image reference
+                    sed -i 's|image: ${IMAGE}:.*|image: ${IMAGE}:${IMAGE_TAG}|' ${DEPLOY_FILE}
 
-                git config user.name "jenkins-ci"
-                git config user.email "jenkins@selfhosted-webapps.local"
-                git add ${DEPLOY_FILE}
+                    git config user.name "jenkins-ci"
+                    git config user.email "jenkins@selfhosted-webapps.local"
 
-                git diff --cached --quiet && echo "No change to commit" && exit 0
-                git commit -m "deploy: update image to ${IMAGE_TAG}"
-                git push origin main
+                    git add ${DEPLOY_FILE}
+                    git diff --cached --quiet && echo "No change to commit" && exit 0
 
-                rm -rf "\$WORK_DIR"
-                """
+                    git commit -m "deploy: update image to ${IMAGE_TAG}"
+                    git push origin main
+
+                    rm -rf "\$WORK_DIR"
+                    """
                 }
             }
         }
@@ -200,12 +201,12 @@ spec:
                 if (env.SKIP_BUILD == 'true') {
                     echo "Skipped (commit by ${env.COMMIT_AUTHOR})."
                 } else {
-                    echo "Build ${env.IMAGE_TAG} (sha-${env.SHORT_SHA}) pushed and deployment manifest updated."
+                    echo "Image ${IMAGE_TAG} built, pushed, and deployment updated."
                 }
             }
         }
         failure {
-            echo "Build failed. Check the logs above."
+            echo "Build failed. Check logs."
         }
     }
 }
