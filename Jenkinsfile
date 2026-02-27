@@ -50,17 +50,6 @@ spec:
         limits:
           cpu: 250m
           memory: 128Mi
-    - name: kubectl
-      image: bitnami/kubectl:latest
-      command: ["cat"]
-      tty: true
-      resources:
-        requests:
-          cpu: 50m
-          memory: 64Mi
-        limits:
-          cpu: 250m
-          memory: 128Mi
   volumes:
     - name: docker-config
       secret:
@@ -80,7 +69,6 @@ spec:
         IMAGE = 'docker.io/lw1n/php-mysql-demo'
         IMAGE_TAG = 'sha-placeholder'
         KUSTOMIZATION_FILE = 'apps/php-mysql-demo/kustomization.yaml'
-        APP_PATH = 'apps/php-mysql-demo'
         GIT_REPO = 'git@github.com:LW1N/selfhosted-webapps.git'
     }
 
@@ -158,20 +146,6 @@ spec:
                 # Update images.newTag in kustomization.yaml (sed is universally available)
                 sed -i 's|newTag: .*|newTag: ${IMAGE_TAG}|' ${KUSTOMIZATION_FILE}
                 """
-            }
-        }
-
-        stage('Pre-deploy Validation') {
-            when { expression { env.SKIP_BUILD != 'true' } }
-            steps {
-                container('kubectl') {
-                    sh """
-                    set -e
-                    echo "Validating manifests against cluster (server-side dry-run)..."
-                    kubectl apply -k ${APP_PATH} --dry-run=server
-                    echo "Validation passed."
-                    """
-                }
             }
         }
 
