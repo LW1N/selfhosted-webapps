@@ -57,7 +57,22 @@ spec:
             }
         }
 
+        stage('Skip Flux commits') {
+            steps {
+                script {
+                    def author = sh(script: 'git log -1 --format=%an', returnStdout: true).trim()
+                    if (author == 'flux-image-automation') {
+                        echo "Commit by Flux image automation — nothing to build."
+                        env.SKIP_BUILD = 'true'
+                    } else {
+                        env.SKIP_BUILD = 'false'
+                    }
+                }
+            }
+        }
+
         stage('Prepare tags') {
+            when { expression { env.SKIP_BUILD != 'true' } }
             steps {
                 script {
                     env.SHORT_SHA = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
@@ -67,6 +82,7 @@ spec:
         }
 
         stage('Test') {
+            when { expression { env.SKIP_BUILD != 'true' } }
             steps {
                 container('test') {
                     sh 'echo "Running PHP lint..."'
@@ -76,6 +92,7 @@ spec:
         }
 
         stage('Build & Push') {
+            when { expression { env.SKIP_BUILD != 'true' } }
             steps {
                 container('kaniko') {
                     sh """
