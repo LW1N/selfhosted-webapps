@@ -140,7 +140,7 @@ spec:
                     cp /etc/git-secret/ssh-privatekey ~/.ssh/id_ed25519
                     chmod 600 ~/.ssh/id_ed25519
 
-                    # Route GitHub SSH through port 443 (works behind VPNs/proxies)
+                    # Route GitHub SSH through port 443; disable IPQoS (breaks over WireGuard)
                     cat > ~/.ssh/config <<SSHEOF
 Host github.com
     HostName ssh.github.com
@@ -148,6 +148,7 @@ Host github.com
     User git
     IdentityFile ~/.ssh/id_ed25519
     StrictHostKeyChecking accept-new
+    IPQoS none
 SSHEOF
                     chmod 600 ~/.ssh/config
 
