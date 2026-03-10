@@ -2,3 +2,6 @@
 docker-compose.yaml
 docker-compose.yml
 apps/php-mysql-demo/k8s/secret.yaml
+# Local export for app repo (do not commit)
+cmpe272-app/
+cmpe272
