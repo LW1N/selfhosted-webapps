@@ -1,26 +1,26 @@
-# Pass & Play (php-mysql-demo)
+# selfhosted-webapps (GitOps)
 
-PHP + MySQL demo site (Pass & Play company site). Built by Jenkins, image promoted via the [selfhosted-webapps](https://github.com/LW1N/selfhosted-webapps) GitOps repo.
+This repo is the **GitOps source of truth** for a Kubernetes cluster managed by **Flux**. It contains the **cluster configuration** and **application manifests** (Kustomize) used to deploy/update workloads.
 
-## Local development
+## Repo layout
 
-```bash
-# PHP lint
-find . -name "*.php" -exec php -l {} \;
+- **`clusters/`**: cluster entrypoints (e.g. `clusters/production/`) that tell Flux what to reconcile.
+- **`apps/`**: per-app manifests:
+  - **`apps/php-mysql-demo/`**: “Pass & Play” PHP + MySQL demo app (namespace, MySQL, web deployment, ingress). Image tag is set in `apps/php-mysql-demo/kustomization.yaml`.
+  - **`apps/jenkins/`**: Jenkins deployment (HelmRelease + ingress + RBAC).
+  - **`apps/flux-image-automation/`**: placeholder directory (currently empty).
 
-# Built-in server (no MySQL; /demo.php will error)
-php -S localhost:8000
+## What Flux reconciles
 
-# Docker build (use linux/amd64 for k3s)
-docker build --platform linux/amd64 -t php-mysql-demo:local .
-docker run --rm -p 8080:80 php-mysql-demo:local
-```
+Start here:
 
-## CI/CD
+- **`clusters/production/kustomization.yaml`**: includes Flux system manifests and app Kustomizations (e.g. Jenkins, php-mysql-demo).
 
-- Push to `main` triggers Jenkins (webhook from this repo).
-- Jenkins builds the image, pushes `docker.io/lw1n/php-mysql-demo:sha-<shortsha>` and `:latest`, then updates the GitOps repo’s `apps/php-mysql-demo/kustomization.yaml` and pushes. Flux deploys.
+## App source code (optional, local-only)
 
-## Docs
+You may also see `cmpe272/` and `cmpe272-app/` in a local workspace. Those are **ignored by `.gitignore`** and are not part of the GitOps manifests:
 
-- [Contacts directory format](docs/contacts.md)
+- `cmpe272/` contains the PHP app source, `Dockerfile`, and a Jenkins pipeline that can build/push `docker.io/lw1n/php-mysql-demo`.
+- `cmpe272-app/` appears to be another variant/export of the same pipeline.
+
+If you have those directories locally, use their READMEs for dev/test instructions (including the contacts CSV format docs under `cmpe272/docs/contacts.md`).
