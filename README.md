@@ -13,11 +13,10 @@ Flux reconciles the cluster and application manifests in this repo and keeps run
 - `clusters/production/apps/jenkins.yaml`: Flux Kustomization pointing to `./apps/jenkins`.
 - `apps/php-mysql-demo/`: Kustomize app manifests for namespace, MySQL, web app, service, and ingress.
 - `apps/jenkins/`: Jenkins HelmRelease and supporting manifests (namespace, ingress, RBAC, HelmRepository).
-- `apps/flux-image-automation/`: reserved/placeholder directory (currently empty).
 
 ## Deploy flow
 
-1. A new application image is built and pushed (for `php-mysql-demo`, tags include `sha-<shortsha>` and `latest`).
+1. The application image for `php-mysql-demo` is built and pushed with tags such as `sha-<shortsha>` and `latest`.
 2. The image tag in `apps/php-mysql-demo/kustomization.yaml` is updated.
 3. Flux detects the Git change and reconciles `clusters/production/`.
 4. Kubernetes is updated to the new desired state.
