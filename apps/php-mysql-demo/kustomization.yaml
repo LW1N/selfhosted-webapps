@@ -12,7 +12,9 @@ resources:
   #     --from-literal=MYSQL_ROOT_PASSWORD='...' \
   #     --from-literal=MYSQL_DATABASE='demo' \
   #     --from-literal=MYSQL_USER='demo' \
-  #     --from-literal=MYSQL_PASSWORD='...'
+  #     --from-literal=MYSQL_PASSWORD='...' \
+  #     --from-literal=ADMIN_PASSWORD_HASH='...' \
+  #     --from-literal=STANDARD_USERS_JSON='{"user":"<password-hash>"}'
   # See k8s/secret.yaml.example for the template.
   - k8s/mysql-init-configmap.yaml
   - k8s/mysql-pvc.yaml

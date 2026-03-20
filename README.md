@@ -33,7 +33,9 @@ kubectl create secret generic mysql-secret \
   --from-literal=MYSQL_ROOT_PASSWORD='<strong-random-password>' \
   --from-literal=MYSQL_DATABASE='demo' \
   --from-literal=MYSQL_USER='demo' \
-  --from-literal=MYSQL_PASSWORD='<strong-random-password>'
+  --from-literal=MYSQL_PASSWORD='<strong-random-password>' \
+  --from-literal=ADMIN_PASSWORD_HASH='<password-hash>' \
+  --from-literal=STANDARD_USERS_JSON='{"user":"<password-hash>"}'
 ```
 
 ## Notes on local-only folders

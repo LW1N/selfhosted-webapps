@@ -44,6 +44,17 @@ spec:
                 secretKeyRef:
                   name: mysql-secret
                   key: MYSQL_PASSWORD
+            - name: ADMIN_PASSWORD_HASH
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: ADMIN_PASSWORD_HASH
+            - name: STANDARD_USERS_JSON
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: STANDARD_USERS_JSON
+                  optional: true
           readinessProbe:
             httpGet:
               path: /
