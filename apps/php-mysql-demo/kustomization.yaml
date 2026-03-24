@@ -3,7 +3,7 @@ kind: Kustomization
 
 images:
   - name: docker.io/lw1n/php-mysql-demo
-    newTag: sha-a5721c8
+    newTag: sha-d622edc
 
 resources:
   - k8s/namespace.yaml
