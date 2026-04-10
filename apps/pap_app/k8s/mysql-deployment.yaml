@@ -49,21 +49,15 @@ spec:
             - name: init-scripts
               mountPath: /docker-entrypoint-initdb.d
           readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - "mysqladmin ping -h 127.0.0.1 -u root -p${MYSQL_ROOT_PASSWORD}"
-            initialDelaySeconds: 15
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - "mysqladmin ping -h 127.0.0.1 -u root -p${MYSQL_ROOT_PASSWORD}"
-            initialDelaySeconds: 30
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 300
             periodSeconds: 15
             timeoutSeconds: 5
           resources:
