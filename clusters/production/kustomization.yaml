@@ -3,5 +3,6 @@ kind: Kustomization
 
 resources:
   - flux-system
-  - apps/php-mysql-demo.yaml
+  - apps/pap_app.yaml
+  - apps/uncannydev-home.yaml
   - apps/jenkins.yaml

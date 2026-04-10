@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`uncannydev.com`)
+    - match: Host(`pap.uncannydev.com`)
       kind: Rule
       services:
         - name: web

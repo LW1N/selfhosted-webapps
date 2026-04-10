@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 images:
-  - name: docker.io/lw1n/php-mysql-demo
+  - name: docker.io/lw1n/pap_app
     newTag: sha-d622edc
 
 resources:

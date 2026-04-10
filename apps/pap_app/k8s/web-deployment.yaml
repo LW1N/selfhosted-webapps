@@ -22,7 +22,7 @@ spec:
       #   - name: ghcr-pull-secret
       containers:
         - name: web
-          image: docker.io/lw1n/php-mysql-demo:latest
+          image: docker.io/lw1n/pap_app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80

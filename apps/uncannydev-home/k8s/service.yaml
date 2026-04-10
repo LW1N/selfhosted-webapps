@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: temp-home
+  namespace: uncannydev-home
+spec:
+  selector:
+    app: temp-home
+  ports:
+    - port: 80
+      targetPort: 80
