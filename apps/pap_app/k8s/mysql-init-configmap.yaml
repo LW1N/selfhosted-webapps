@@ -8,5 +8,49 @@ data:
     -- Runs on first initialization only (when /var/lib/mysql is empty).
     -- The user is created automatically by MySQL from MYSQL_USER / MYSQL_PASSWORD
     -- env vars. This script ensures remote access from any pod in the cluster.
+    CREATE DATABASE IF NOT EXISTS `demo` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    USE `demo`;
+
     GRANT ALL PRIVILEGES ON `demo`.* TO 'demo'@'%';
+
+    CREATE TABLE IF NOT EXISTS `users` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `first_name` VARCHAR(80) NOT NULL,
+      `last_name` VARCHAR(80) NOT NULL,
+      `email` VARCHAR(191) NOT NULL UNIQUE,
+      `home_address` VARCHAR(255) NOT NULL,
+      `home_phone` VARCHAR(32) NOT NULL,
+      `cell_phone` VARCHAR(32) NOT NULL,
+      `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX `idx_users_name` (`last_name`, `first_name`),
+      INDEX `idx_users_email` (`email`),
+      INDEX `idx_users_home_phone` (`home_phone`),
+      INDEX `idx_users_cell_phone` (`cell_phone`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+    INSERT IGNORE INTO `users`
+      (`first_name`, `last_name`, `email`, `home_address`, `home_phone`, `cell_phone`)
+    VALUES
+      ('Avery', 'Chen', 'avery.chen@passandplay.com', '101 Market St, San Jose, CA 95113', '408-555-0101', '408-555-1101'),
+      ('Jordan', 'Patel', 'jordan.patel@passandplay.com', '214 River Oaks Dr, Campbell, CA 95008', '408-555-0102', '408-555-1102'),
+      ('Mia', 'Garcia', 'mia.garcia@passandplay.com', '88 Willow Ave, Santa Clara, CA 95050', '408-555-0103', '408-555-1103'),
+      ('Noah', 'Kim', 'noah.kim@passandplay.com', '510 Orchard Ln, Sunnyvale, CA 94086', '408-555-0104', '408-555-1104'),
+      ('Sophia', 'Nguyen', 'sophia.nguyen@passandplay.com', '742 Blossom Hill Rd, Los Gatos, CA 95032', '408-555-0105', '408-555-1105'),
+      ('Ethan', 'Martinez', 'ethan.martinez@passandplay.com', '390 Meridian Ave, San Jose, CA 95126', '408-555-0106', '408-555-1106'),
+      ('Isabella', 'Johnson', 'isabella.johnson@passandplay.com', '66 Castro St, Mountain View, CA 94041', '650-555-0107', '650-555-1107'),
+      ('Liam', 'Brown', 'liam.brown@passandplay.com', '1255 Homestead Rd, Cupertino, CA 95014', '408-555-0108', '408-555-1108'),
+      ('Olivia', 'Davis', 'olivia.davis@passandplay.com', '907 Lincoln Ave, Palo Alto, CA 94301', '650-555-0109', '650-555-1109'),
+      ('Lucas', 'Wilson', 'lucas.wilson@passandplay.com', '333 Santana Row, San Jose, CA 95128', '408-555-0110', '408-555-1110'),
+      ('Amelia', 'Lee', 'amelia.lee@passandplay.com', '48 Central Ave, Los Altos, CA 94022', '650-555-0111', '650-555-1111'),
+      ('Mason', 'Taylor', 'mason.taylor@passandplay.com', '611 Park Ave, San Jose, CA 95110', '408-555-0112', '408-555-1112'),
+      ('Harper', 'Anderson', 'harper.anderson@passandplay.com', '2030 El Camino Real, Santa Clara, CA 95050', '408-555-0113', '408-555-1113'),
+      ('Logan', 'Thomas', 'logan.thomas@passandplay.com', '74 Winchester Blvd, San Jose, CA 95128', '408-555-0114', '408-555-1114'),
+      ('Evelyn', 'Moore', 'evelyn.moore@passandplay.com', '1192 Grant Rd, Mountain View, CA 94040', '650-555-0115', '650-555-1115'),
+      ('Benjamin', 'Jackson', 'benjamin.jackson@passandplay.com', '801 N First St, San Jose, CA 95112', '408-555-0116', '408-555-1116'),
+      ('Charlotte', 'White', 'charlotte.white@passandplay.com', '455 University Ave, Palo Alto, CA 94301', '650-555-0117', '650-555-1117'),
+      ('James', 'Harris', 'james.harris@passandplay.com', '1720 The Alameda, San Jose, CA 95126', '408-555-0118', '408-555-1118'),
+      ('Ella', 'Martin', 'ella.martin@passandplay.com', '29 Stevens Creek Blvd, Cupertino, CA 95014', '408-555-0119', '408-555-1119'),
+      ('Henry', 'Thompson', 'henry.thompson@passandplay.com', '980 Saratoga Ave, San Jose, CA 95129', '408-555-0120', '408-555-1120');
+
     FLUSH PRIVILEGES;

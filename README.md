@@ -12,7 +12,7 @@ Flux reconciles the cluster and application manifests in this repo and keeps run
 - `clusters/production/apps/pap_app.yaml`: Flux Kustomization pointing to `./apps/pap_app`.
 - `clusters/production/apps/uncannydev-home.yaml`: Flux Kustomization pointing to `./apps/uncannydev-home`.
 - `clusters/production/apps/jenkins.yaml`: Flux Kustomization pointing to `./apps/jenkins`.
-- `apps/pap_app/`: Kustomize app manifests for namespace, MySQL, web app, service, and ingress.
+- `apps/pap_app/`: Kustomize app manifests for namespace, MySQL, web app, service, ingress, and first-run database seed scripts.
 - `apps/uncannydev-home/`: Static temporary landing page for `uncannydev.com`.
 - `apps/jenkins/`: Jenkins HelmRelease and supporting manifests (namespace, ingress, RBAC, HelmRepository).
 
