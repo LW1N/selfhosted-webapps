@@ -29,6 +29,14 @@ data:
       INDEX `idx_users_cell_phone` (`cell_phone`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+    CREATE TABLE IF NOT EXISTS `product_visit_counts` (
+      `slug` VARCHAR(120) PRIMARY KEY,
+      `visit_count` INT UNSIGNED NOT NULL DEFAULT 0,
+      `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX `idx_product_visit_counts_visit_count` (`visit_count`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
     INSERT IGNORE INTO `users`
       (`first_name`, `last_name`, `email`, `home_address`, `home_phone`, `cell_phone`)
     VALUES
