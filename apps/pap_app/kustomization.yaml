@@ -3,7 +3,7 @@ kind: Kustomization
 
 images:
   - name: docker.io/lw1n/pap_app
-    newTag: sha-08d1eac
+    newTag: sha-79ee159
 
 resources:
   - k8s/namespace.yaml
