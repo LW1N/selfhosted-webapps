@@ -1,51 +1,39 @@
 # selfhosted-webapps (GitOps)
 
-This repository is the GitOps source of truth for a Flux-managed Kubernetes cluster.
-Flux reconciles the cluster and application manifests in this repo and keeps runtime state aligned with Git.
+Flux reconciles `clusters/production/` from the `main` branch. Pushing or merging
+changes into `main` deploys them automatically; a local commit does not.
 
-## Repository layout
+## Layout
 
-- `clusters/production/`: cluster entrypoint reconciled by Flux.
-  - `clusters/production/kustomization.yaml` includes:
-    - `flux-system` components/sync objects
-    - app Kustomizations in `clusters/production/apps/`
-- `clusters/production/apps/pap_app.yaml`: Flux Kustomization pointing to `./apps/pap_app`.
-- `clusters/production/apps/uncannydev-home.yaml`: Flux Kustomization pointing to `./apps/uncannydev-home`.
-- `clusters/production/apps/jenkins.yaml`: Flux Kustomization pointing to `./apps/jenkins`.
-- `apps/pap_app/`: Kustomize app manifests for namespace, MySQL, web app, service, ingress, and first-run database seed scripts.
-- `apps/uncannydev-home/`: Static temporary landing page for `uncannydev.com`.
-- `apps/jenkins/`: Jenkins HelmRelease and supporting manifests (namespace, ingress, RBAC, HelmRepository).
+- `clusters/production/`: Flux configuration and application references.
+- `apps/pap_app/`: Pass & Play application and MySQL manifests.
+- `apps/uncannydev-home/`: Static home page manifests.
+- `apps/jenkins/`: Jenkins Helm release and supporting resources.
+- `apps/monitoring/`: Prometheus/Grafana Helm release and Grafana ingress.
+  See the [monitoring README](apps/monitoring/README.md) before its first deployment.
 
-## Deploy flow
+## Workflow
 
-1. The application image for Pass & Play is built and pushed with tags such as `sha-<shortsha>` and `latest`.
-2. The image tag in `apps/pap_app/kustomization.yaml` is updated.
-3. Flux detects the Git change and reconciles `clusters/production/`.
-4. Kubernetes is updated to the new desired state.
+Update manifests and Helm values in Git. For Pass & Play, build and push the
+application image, then update its image tag in `apps/pap_app/kustomization.yaml`.
+Avoid lasting manual changes to Flux-managed resources.
 
-## Secrets and credentials
+Validate from the repository root before committing:
 
-- Do not commit real credentials to Git.
-- `apps/pap_app/k8s/secret.yaml.example` is a template only.
-- Create the real MySQL secret in the `demo` namespace, for example:
-
-```bash
-kubectl create secret generic mysql-secret \
-  --namespace=demo \
-  --from-literal=MYSQL_ROOT_PASSWORD='<strong-random-password>' \
-  --from-literal=MYSQL_DATABASE='demo' \
-  --from-literal=MYSQL_USER='demo' \
-  --from-literal=MYSQL_PASSWORD='<strong-random-password>' \
-  --from-literal=ADMIN_PASSWORD_HASH='<password-hash>' \
-  --from-literal=STANDARD_USERS_JSON='{"user":"<password-hash>"}'
+```sh
+kubectl kustomize apps/monitoring > /dev/null
+kubectl kustomize clusters/production > /dev/null
+git diff --check
+git status --short
 ```
 
-## Notes on local-only folders
+## Secrets
 
-- The root `.gitignore` excludes local app-development folders such as `cmpe272` and `cmpe272-app`.
-- These folders can exist in a local workspace but are not used by Flux reconciliation unless explicitly copied into tracked paths under `apps/` and committed.
+Keep credentials, tokens, private keys, and database backups out of Git. Supply
+required Kubernetes Secrets separately or use an encrypted secrets workflow.
+`apps/pap_app/k8s/secret.yaml.example` is a template, not a deployable Secret.
 
-## Rename note
+## Local development
 
-- The GitOps app path has been renamed from `php-mysql-demo` to `pap_app`.
-- The container image repository is now `docker.io/lw1n/pap_app`.
+Ignored development folders are not deployed unless their manifests are added
+to a Flux-managed path. The former `php-mysql-demo` app is now `pap_app`.

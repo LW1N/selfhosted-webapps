@@ -6,3 +6,4 @@ resources:
   - apps/pap_app.yaml
   - apps/uncannydev-home.yaml
   - apps/jenkins.yaml
+  - apps/monitoring.yaml
