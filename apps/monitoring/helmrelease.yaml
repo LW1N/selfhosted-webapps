@@ -19,6 +19,33 @@ spec:
         name: prometheus-community
         namespace: flux-system
       interval: 12h
-  # The existing release was installed with chart defaults only.
   # Grafana's chart reuses its existing admin-password Secret during upgrades.
-  values: {}
+  values:
+    grafana:
+      persistence:
+        enabled: true
+        storageClassName: local-path
+        accessModes: [ReadWriteOnce]
+        size: 5Gi
+    prometheus:
+      prometheusSpec:
+        retention: 10d
+        retentionSize: 16GB
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              accessModes: [ReadWriteOnce]
+              resources:
+                requests:
+                  storage: 20Gi
+    alertmanager:
+      alertmanagerSpec:
+        storage:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              accessModes: [ReadWriteOnce]
+              resources:
+                requests:
+                  storage: 1Gi
